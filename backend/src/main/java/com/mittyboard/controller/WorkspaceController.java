@@ -2,8 +2,7 @@ package com.mittyboard.controller;
 
 import com.mittyboard.dto.WorkspaceRequest;
 import com.mittyboard.dto.WorkspaceResponse;
-import com.mittyboard.entity.Workspace;
-import com.mittyboard.service.WorkspaceService;
+import com.mittyboard.service.WorkspacesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,20 +15,19 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WorkspaceController {
 
-    private final WorkspaceService workspaceService;
+    private final WorkspacesService workspacesService;
 
     @PostMapping
     public ResponseEntity<WorkspaceResponse> createWorkspace(
-            @RequestBody WorkspaceRequest request,
-            @RequestParam Long userId) {
-
-        WorkspaceResponse response = workspaceService.createWorkspace(request, userId);
+            @RequestBody WorkspaceRequest request
+    ) {
+        WorkspaceResponse response = workspacesService.createWorkspace(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    public ResponseEntity<List<WorkspaceResponse>> getUserWorkspaces(@RequestParam Long userId) {
-
-        List<WorkspaceResponse> responses = workspaceService.getUserWorkSpaces(userId);
+    @GetMapping
+    public ResponseEntity<List<WorkspaceResponse>> getUserWorkspaces() {
+        List<WorkspaceResponse> responses = workspacesService.getUserWorkSpaces();
         return ResponseEntity.ok(responses);
     }
 }
