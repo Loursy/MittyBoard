@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class WorkspaceRequest {
-    private String name;
-    private String description;
+@AllArgsConstructor
+public class BoardRequest {
+    private String title;
+    private Long workspaceId;
 }

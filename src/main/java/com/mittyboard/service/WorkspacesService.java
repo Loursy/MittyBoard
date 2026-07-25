@@ -4,8 +4,8 @@ import com.mittyboard.dto.WorkspaceRequest;
 import com.mittyboard.dto.WorkspaceResponse;
 import com.mittyboard.entity.User;
 import com.mittyboard.entity.Workspace;
-import com.mittyboard.repository.UserRepository;
 import com.mittyboard.repository.WorkspaceRepository;
+import com.mittyboard.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,14 +14,14 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class WorkspaceService {
+public class WorkspacesService {
 
     private final WorkspaceRepository workspaceRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
 
-    public WorkspaceResponse createWorkspace(WorkspaceRequest request, Long userId) {
-        User owner = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public WorkspaceResponse createWorkspace(WorkspaceRequest request) {
+        // userId parametresini kaldırdık, işlemi yapan kişiyi token'dan alıyoruz
+        User owner = currentUserService.getAuthenticatedUser();
 
         Workspace workspace = Workspace.builder()
                 .name(request.getName())
@@ -34,8 +34,11 @@ public class WorkspaceService {
         return mapToResponse(savedWorkspace);
     }
 
-    public List<WorkspaceResponse> getUserWorkSpaces(Long userId) {
-        List<Workspace> workspaces = workspaceRepository.findByOwnerId(userId);
+    public List<WorkspaceResponse> getUserWorkSpaces() {
+        // userId parametresini kaldırdık, anlık kullanıcıyı yakalıyoruz
+        User owner = currentUserService.getAuthenticatedUser();
+
+        List<Workspace> workspaces = workspaceRepository.findByOwnerId(owner.getId());
 
         return workspaces.stream()
                 .map(this::mapToResponse)
