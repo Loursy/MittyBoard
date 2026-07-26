@@ -1,6 +1,7 @@
 package com.mittyboard.entity;
 
 import com.mittyboard.enums.Priority;
+import com.mittyboard.enums.TaskStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -39,6 +40,9 @@ public class Task {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
     private User assignee;
+
+    @Enumerated(EnumType.STRING)
+    private TaskStatus status;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
