@@ -30,4 +30,19 @@ public class WorkspaceController {
         List<WorkspaceResponse> responses = workspacesService.getUserWorkSpaces();
         return ResponseEntity.ok(responses);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<WorkspaceResponse> updateWorkspace(
+            @PathVariable Long id,
+            @RequestBody WorkspaceRequest request
+    ) {
+        WorkspaceResponse response = workspacesService.updateWorkspace(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteWorkspace(@PathVariable Long id) {
+        workspacesService.deleteWorkspace(id);
+        return ResponseEntity.noContent().build();
+    }
 }

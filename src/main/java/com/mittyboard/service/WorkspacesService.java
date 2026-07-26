@@ -20,7 +20,7 @@ public class WorkspacesService {
     private final CurrentUserService currentUserService;
 
     public WorkspaceResponse createWorkspace(WorkspaceRequest request) {
-        // userId parametresini kaldırdık, işlemi yapan kişiyi token'dan alıyoruz
+
         User owner = currentUserService.getAuthenticatedUser();
 
         Workspace workspace = Workspace.builder()
@@ -35,7 +35,7 @@ public class WorkspacesService {
     }
 
     public List<WorkspaceResponse> getUserWorkSpaces() {
-        // userId parametresini kaldırdık, anlık kullanıcıyı yakalıyoruz
+
         User owner = currentUserService.getAuthenticatedUser();
 
         List<Workspace> workspaces = workspaceRepository.findByOwnerId(owner.getId());
@@ -53,5 +53,35 @@ public class WorkspacesService {
                 .ownerId(workspace.getOwner().getId())
                 .createdAt(workspace.getCreatedAt())
                 .build();
+    }
+
+    public WorkspaceResponse updateWorkspace(Long workspaceId, WorkspaceRequest request) {
+        User currentUser = currentUserService.getAuthenticatedUser();
+
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new RuntimeException("Workspace cannot be found"));
+
+        if (!workspace.getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You are not authorized to delete this workspace");
+        }
+
+        workspace.setName(request.getName());
+        workspace.setDescription(request.getDescription());
+
+        Workspace updatedWorkspace = workspaceRepository.save(workspace);
+        return mapToResponse(updatedWorkspace);
+    }
+
+    public void deleteWorkspace(Long workspaceId) {
+        User currentUser = currentUserService.getAuthenticatedUser();
+
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new RuntimeException("Workspace cannot be found!"));
+
+        if (!workspace.getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You are not authorized to delete this workspace");
+        }
+
+        workspaceRepository.delete(workspace);
     }
 }
