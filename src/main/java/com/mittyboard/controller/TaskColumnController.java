@@ -29,7 +29,7 @@ public class TaskColumnController {
         return ResponseEntity.ok(responses);
     }
 
-    @PutMapping
+    @PutMapping("/{id}")
     public ResponseEntity<TaskColumnResponse> updateColumn(
             @PathVariable Long id,
             @RequestBody TaskColumnRequest request
@@ -38,7 +38,7 @@ public class TaskColumnController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteColumn(@PathVariable Long id) {
         taskColumnService.deleteTaskColumn(id);
         return ResponseEntity.noContent().build();
