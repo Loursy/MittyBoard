@@ -26,10 +26,10 @@ public class TaskService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         TaskColumn column = taskColumnRepository.findById(request.getColumnId())
-                .orElseThrow(() -> new RuntimeException("Kolon bulunamadı!"));
+                .orElseThrow(() -> new RuntimeException("Column cannot be found!"));
 
         if (!column.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Bu kolona görev ekleme yetkiniz yok!");
+            throw new RuntimeException("You are not authorized to add Tasks to this Column");
         }
         Task task = Task.builder()
                 .title(request.getTitle())
@@ -49,10 +49,10 @@ public class TaskService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         TaskColumn column = taskColumnRepository.findById(columnId)
-                .orElseThrow(() -> new RuntimeException("Kolon bulunamadı!"));
+                .orElseThrow(() -> new RuntimeException("Column cannot be found!"));
 
         if (!column.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Bu kolonun görevlerini görme yetkiniz yok!");
+            throw new RuntimeException("You don't have access to see this column");
         }
 
         List<Task> tasks = taskRepository.findByColumnIdOrderByPositionAsc(columnId);
@@ -60,6 +60,54 @@ public class TaskService {
         return tasks.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    public TaskResponse updateTask(Long taskId, TaskRequest request) {
+        User currentUser = currentUserService.getAuthenticatedUser();
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task cannot be found!"));
+
+        if(!task.getColumn().getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You are not authorized to update this task!");
+        }
+
+        if (request.getTitle() != null) {
+            task.setTitle(request.getTitle());
+        }
+
+        if (request.getDescription() != null) {
+            task.setDescription(request.getDescription());
+        }
+
+        if (request.getPosition() != null) {
+            task.setPosition(request.getPosition());
+        }
+
+        if (request.getPriority() != null) {
+            task.setPriority(request.getPriority());
+        }
+
+        if (request.getStatus() != null) {
+            task.setStatus(request.getStatus());
+        }
+
+        Task updatedTask = taskRepository.save(task);
+
+        return mapToResponse(updatedTask);
+    }
+
+    public void deleteTask(Long taskId) {
+        User currentUser = currentUserService.getAuthenticatedUser();
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task cannot be found!"));
+
+        if(!task.getColumn().getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You are not authorized to delete this Task!");
+        }
+
+        taskRepository.delete(task);
     }
 
     private TaskResponse mapToResponse(Task task) {
