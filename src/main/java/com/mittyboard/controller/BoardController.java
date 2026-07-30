@@ -24,8 +24,25 @@ public class BoardController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @GetMapping
     public ResponseEntity<List<BoardResponse>> getBoards(@RequestParam Long workspaceId) {
         List<BoardResponse> responses = boardService.getBoardsByWorkspace(workspaceId);
         return ResponseEntity.ok(responses);
     }
+
+    @PutMapping
+    public ResponseEntity<BoardResponse> updateBoard(
+            @PathVariable Long id,
+            @RequestBody BoardRequest request
+    ) {
+        BoardResponse response = boardService.updateBoard(id , request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteBoard(@PathVariable Long id) {
+        boardService.deleteBoard(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }

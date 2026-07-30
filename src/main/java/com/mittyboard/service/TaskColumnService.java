@@ -60,6 +60,7 @@ public class TaskColumnService {
                 .collect(Collectors.toList());
     }
 
+
     private TaskColumnResponse mapToResponse(TaskColumn column) {
         return TaskColumnResponse.builder()
                 .id(column.getId())
