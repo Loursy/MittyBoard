@@ -71,7 +71,9 @@ public class BoardService {
             throw new RuntimeException("You are not authorized to update this board");
         }
 
-        board.setTitle(request.getTitle());
+        if(request.getTitle() != null) {
+            board.setTitle(request.getTitle());
+        }
 
         Board updatedBoard = boardRepository.save(board);
         return mapToResponse(updatedBoard);

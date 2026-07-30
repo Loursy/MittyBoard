@@ -65,8 +65,13 @@ public class WorkspacesService {
             throw new RuntimeException("You are not authorized to delete this workspace");
         }
 
-        workspace.setName(request.getName());
-        workspace.setDescription(request.getDescription());
+        if(request.getName() != null) {
+            workspace.setName(request.getName());
+        }
+
+        if(request.getDescription() != null) {
+            workspace.setDescription(request.getDescription());
+        }
 
         Workspace updatedWorkspace = workspaceRepository.save(workspace);
         return mapToResponse(updatedWorkspace);

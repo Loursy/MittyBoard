@@ -67,14 +67,18 @@ public class TaskColumnService {
                 .orElseThrow(() -> new RuntimeException("Task Column cannot be found."));
 
         if(!taskColumn.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You don't have access to update the column in this Task Column");
+            throw new RuntimeException("You are not authorized to update this column");
         }
 
-        taskColumn.setTitle(request.getTitle());
-        taskColumn.setPosition(request.getPosition());
+        if(request.getTitle() != null) {
+            taskColumn.setTitle(request.getTitle());
+        }
+
+        if(request.getPosition() != null) {
+            taskColumn.setPosition(request.getPosition());
+        }
 
         TaskColumn updatedColumn = taskColumnRepository.save(taskColumn);
-
         return mapToResponse(updatedColumn);
     }
 

@@ -28,4 +28,20 @@ public class TaskController {
         List<TaskResponse> responses = taskService.getTasksByColumn(columnId);
         return ResponseEntity.ok(responses);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<TaskResponse> updateTask(
+            @PathVariable Long id,
+            @RequestBody TaskRequest request
+    ) {
+        TaskResponse response = taskService.updateTask(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+        taskService.deleteTask(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }
