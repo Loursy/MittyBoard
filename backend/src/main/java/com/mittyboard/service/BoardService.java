@@ -60,6 +60,36 @@ public class BoardService {
                 .collect(Collectors.toList());
     }
 
+    public BoardResponse updateBoard(Long boardId, BoardRequest request) {
+
+        User currentUser = currentUserService.getAuthenticatedUser();
+
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Board cannot be found"));
+
+        if (!board.getWorkspace().getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You are not authorized to update this board");
+        }
+
+        board.setTitle(request.getTitle());
+
+        Board updatedBoard = boardRepository.save(board);
+        return mapToResponse(updatedBoard);
+    }
+
+    public void deleteBoard(Long boardId) {
+        User currentUser = currentUserService.getAuthenticatedUser();
+
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new RuntimeException("Board cannot be found!"));
+
+        if(!board.getWorkspace().getOwner().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You are not authorized to delete this board");
+        }
+
+        boardRepository.delete(board);
+    }
+
     private BoardResponse mapToResponse(Board board) {
         return BoardResponse.builder()
                 .id(board.getId())
