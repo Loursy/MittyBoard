@@ -28,4 +28,19 @@ public class TaskColumnController {
         List<TaskColumnResponse> responses = taskColumnService.getColumnsByBoard(boardId);
         return ResponseEntity.ok(responses);
     }
+
+    @PutMapping
+    public ResponseEntity<TaskColumnResponse> updateColumn(
+            @PathVariable Long id,
+            @RequestBody TaskColumnRequest request
+    ) {
+        TaskColumnResponse response = taskColumnService.updateTaskColumn(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteColumn(@PathVariable Long id) {
+        taskColumnService.deleteTaskColumn(id);
+        return ResponseEntity.noContent().build();
+    }
 }
