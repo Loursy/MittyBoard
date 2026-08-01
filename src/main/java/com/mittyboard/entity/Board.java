@@ -30,7 +30,7 @@ public class Board {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TaskColumn> tasks;
+    private List<TaskColumn> taskColumns;
 
     @PrePersist
     protected void onCreate() {

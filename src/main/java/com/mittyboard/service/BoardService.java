@@ -22,12 +22,12 @@ public class BoardService {
     private final WorkspaceRepository workspaceRepository;
     private final CurrentUserService currentUserService;
 
-    public BoardResponse createBoard(BoardRequest request) {
+    public BoardResponse createBoard(Long workspaceId, BoardRequest request) {
 
         User currentUser = currentUserService.getAuthenticatedUser();
 
-        Workspace workspace = workspaceRepository.findById(request.getWorkspaceId())
-                .orElseThrow(() -> new RuntimeException("There is no workspace!"));
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new RuntimeException("Workspace cannot be found!"));
 
         if(!workspace.getOwner().getId().equals(currentUser.getId())) {
             throw new RuntimeException("You are not authorized to work in this workspace");
@@ -71,7 +71,7 @@ public class BoardService {
             throw new RuntimeException("You are not authorized to update this board");
         }
 
-        if(request.getTitle() != null) {
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
             board.setTitle(request.getTitle());
         }
 
