@@ -14,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.mittyboard.exception.ResourceNotFoundException;
+import com.mittyboard.exception.UnauthorizedAccessException;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -50,7 +52,7 @@ public class BoardServiceTest {
         mockOwner.setId(1L);
 
         Workspace mockWorkspace = new Workspace();
-        mockWorkspace.setId(5L); // Real ID assignment for DTO validation
+        mockWorkspace.setId(5L);
         mockWorkspace.setOwner(mockOwner);
 
         Board mockBoard = new Board();
@@ -73,10 +75,7 @@ public class BoardServiceTest {
         assertNotNull(response);
         assertEquals("New MittyBoard Title", response.getTitle());
         assertEquals(10L, response.getId());
-        assertEquals(LocalDateTime.of(2023, 1, 1, 10, 0), response.getCreatedAt()); // Ensure immutable fields remain intact
-
-        // Uncomment if your BoardResponse has a workspaceId field:
-        // assertEquals(5L, response.getWorkspaceId());
+        assertEquals(LocalDateTime.of(2023, 1, 1, 10, 0), response.getCreatedAt());
 
         verify(boardRepository, times(1)).save(mockBoard);
     }
@@ -101,7 +100,7 @@ public class BoardServiceTest {
         when(boardRepository.findById(10L)).thenReturn(Optional.of(mockBoard));
 
         // WHEN & THEN
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        UnauthorizedAccessException exception = assertThrows(UnauthorizedAccessException.class, () -> {
             boardService.updateBoard(10L, updateRequest);
         });
 
@@ -119,11 +118,11 @@ public class BoardServiceTest {
         when(boardRepository.findById(99L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             boardService.updateBoard(99L, updateRequest);
         });
 
-        assertEquals("Board cannot be found", exception.getMessage());
+        assertEquals("Board cannot be found!", exception.getMessage());
         verify(boardRepository, never()).save(any());
     }
 
@@ -139,7 +138,7 @@ public class BoardServiceTest {
         mockBoard.setWorkspace(mockWorkspace);
 
         BoardRequest updateRequest = new BoardRequest();
-        updateRequest.setTitle(null); // Client sends null
+        updateRequest.setTitle(null);
 
         when(currentUserService.getAuthenticatedUser()).thenReturn(mockOwner);
         when(boardRepository.findById(10L)).thenReturn(Optional.of(mockBoard));
@@ -148,7 +147,7 @@ public class BoardServiceTest {
         // WHEN
         BoardResponse response = boardService.updateBoard(10L, updateRequest);
 
-        // THEN: Title must remain unchanged
+        // THEN
         assertEquals("Original Title", response.getTitle());
     }
 
@@ -164,7 +163,7 @@ public class BoardServiceTest {
         mockBoard.setWorkspace(mockWorkspace);
 
         BoardRequest updateRequest = new BoardRequest();
-        updateRequest.setTitle("    "); // Client sends spaces
+        updateRequest.setTitle("    ");
 
         when(currentUserService.getAuthenticatedUser()).thenReturn(mockOwner);
         when(boardRepository.findById(10L)).thenReturn(Optional.of(mockBoard));
@@ -173,7 +172,7 @@ public class BoardServiceTest {
         // WHEN
         BoardResponse response = boardService.updateBoard(10L, updateRequest);
 
-        // THEN: Title must remain unchanged
+        // THEN
         assertEquals("Original Title", response.getTitle());
     }
 
@@ -184,7 +183,7 @@ public class BoardServiceTest {
 
         Board corruptedBoard = new Board();
         corruptedBoard.setId(10L);
-        corruptedBoard.setWorkspace(null); // Corrupted data
+        corruptedBoard.setWorkspace(null);
 
         BoardRequest updateRequest = new BoardRequest();
         updateRequest.setTitle("Test");
@@ -233,7 +232,7 @@ public class BoardServiceTest {
         when(boardRepository.findById(10L)).thenReturn(Optional.of(mockBoard));
 
         // WHEN & THEN
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        UnauthorizedAccessException exception = assertThrows(UnauthorizedAccessException.class, () -> {
             boardService.deleteBoard(10L);
         });
 
@@ -248,7 +247,7 @@ public class BoardServiceTest {
         when(boardRepository.findById(99L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             boardService.deleteBoard(99L);
         });
 
@@ -263,7 +262,7 @@ public class BoardServiceTest {
 
         Board corruptedBoard = new Board();
         corruptedBoard.setId(10L);
-        corruptedBoard.setWorkspace(null); // Corrupted data
+        corruptedBoard.setWorkspace(null);
 
         when(currentUserService.getAuthenticatedUser()).thenReturn(mockOwner);
         when(boardRepository.findById(10L)).thenReturn(Optional.of(corruptedBoard));
@@ -330,9 +329,6 @@ public class BoardServiceTest {
         assertNotNull(response);
         assertEquals("New Board", response.getTitle());
 
-        // Uncomment if your BoardResponse has a workspaceId field:
-        // assertEquals(5L, response.getWorkspaceId());
-
         verify(boardRepository, times(1)).save(any(Board.class));
     }
 
@@ -346,11 +342,10 @@ public class BoardServiceTest {
         when(workspaceRepository.findById(99L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             boardService.createBoard(99L, createRequest);
         });
 
-        // Ensure this matches your actual exception message in BoardService
         assertEquals("Workspace cannot be found!", exception.getMessage());
         verify(boardRepository, never()).save(any());
     }
@@ -373,11 +368,11 @@ public class BoardServiceTest {
         when(workspaceRepository.findById(5L)).thenReturn(Optional.of(mockWorkspace));
 
         // WHEN & THEN
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        UnauthorizedAccessException exception = assertThrows(UnauthorizedAccessException.class, () -> {
             boardService.createBoard(5L, createRequest);
         });
 
-        assertEquals("You are not authorized to work in this workspace", exception.getMessage());
+        assertEquals("You are not authorized to create a board in this workspace", exception.getMessage());
         verify(boardRepository, never()).save(any());
     }
 
@@ -435,9 +430,10 @@ public class BoardServiceTest {
         when(workspaceRepository.findById(99L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        assertThrows(RuntimeException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             boardService.getBoardsByWorkspace(99L);
         });
+
         verify(boardRepository, never()).findByWorkspaceId(any());
     }
 
@@ -452,9 +448,10 @@ public class BoardServiceTest {
         when(workspaceRepository.findById(5L)).thenReturn(Optional.of(mockWorkspace));
 
         // WHEN & THEN
-        assertThrows(RuntimeException.class, () -> {
+        UnauthorizedAccessException exception = assertThrows(UnauthorizedAccessException.class, () -> {
             boardService.getBoardsByWorkspace(5L);
         });
+
         verify(boardRepository, never()).findByWorkspaceId(any());
     }
 }

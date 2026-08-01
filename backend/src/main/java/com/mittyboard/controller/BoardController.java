@@ -4,10 +4,10 @@ import com.mittyboard.dto.BoardRequest;
 import com.mittyboard.dto.BoardResponse;
 import com.mittyboard.service.BoardService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -23,8 +23,8 @@ public class BoardController {
             @RequestBody BoardRequest request) {
 
         BoardResponse response = boardService.createBoard(workspaceId, request);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        URI location = URI.create("/api/v1/boards/" + response.getId());
+        return ResponseEntity.created(location).body(response);
     }
 
     @GetMapping("/workspaces/{workspaceId}")
@@ -34,7 +34,7 @@ public class BoardController {
         return ResponseEntity.ok(responses);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<BoardResponse> updateBoard(
             @PathVariable Long id,
             @RequestBody BoardRequest request) {

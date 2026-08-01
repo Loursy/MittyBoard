@@ -10,6 +10,8 @@ import com.mittyboard.repository.WorkspaceRepository;
 import com.mittyboard.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.mittyboard.exception.ResourceNotFoundException;
+import com.mittyboard.exception.UnauthorizedAccessException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,10 +29,10 @@ public class BoardService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new RuntimeException("Workspace cannot be found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace cannot be found!"));
 
         if(!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to work in this workspace");
+            throw new UnauthorizedAccessException("You are not authorized to create a board in this workspace");
         }
 
         Board board = Board.builder()
@@ -47,10 +49,10 @@ public class BoardService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new RuntimeException("There isn't any workspace!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace cannot be found!"));
 
         if(!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You don't have access to see boards in this workspace");
+            throw new UnauthorizedAccessException("You are not authorized to view a board in this workspace");
         }
 
         List<Board> boards = boardRepository.findByWorkspaceId(workspaceId);
@@ -65,10 +67,10 @@ public class BoardService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new RuntimeException("Board cannot be found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Board cannot be found!"));
 
         if (!board.getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to update this board");
+            throw new UnauthorizedAccessException("You are not authorized to update this board");
         }
 
         if (request.getTitle() != null && !request.getTitle().isBlank()) {
@@ -83,10 +85,10 @@ public class BoardService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new RuntimeException("Board cannot be found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Board cannot be found!"));
 
         if(!board.getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to delete this board");
+            throw new UnauthorizedAccessException("You are not authorized to delete this board");
         }
 
         boardRepository.delete(board);
