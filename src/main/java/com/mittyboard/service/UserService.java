@@ -4,6 +4,7 @@ import com.mittyboard.dto.UserRequest;
 import com.mittyboard.dto.UserResponse;
 import com.mittyboard.entity.User;
 import com.mittyboard.enums.Role;
+import com.mittyboard.exception.ResourceConflictException;
 import com.mittyboard.repository.UserRepository;
 import com.mittyboard.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
@@ -20,12 +21,12 @@ public class UserService {
 
     public UserResponse createUser(UserRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("This mail address already exists");
+            throw new ResourceConflictException("This mail address already exists");
         }
 
         User user = User.builder()
                 .email(request.getEmail())
-                .password(request.getPassword()) // Change with Spring Security
+                .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .role(Role.USER)
                 .build();
@@ -39,16 +40,17 @@ public class UserService {
 
         User currentUser = currentUserService.getAuthenticatedUser();
 
-        if (request.getFullName() != null) {
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
             currentUser.setFullName(request.getFullName());
         }
 
         if (request.getEmail() != null && !request.getEmail().equalsIgnoreCase(currentUser.getEmail())) {
             if (userRepository.existsByEmail(request.getEmail())) {
-                throw new RuntimeException("This email is already registered!");
+                throw new ResourceConflictException("This email is already registered!");
             }
             currentUser.setEmail(request.getEmail());
         }
+
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             currentUser.setPassword(passwordEncoder.encode(request.getPassword()));
         }
