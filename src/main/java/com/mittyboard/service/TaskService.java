@@ -11,6 +11,7 @@ import com.mittyboard.repository.TaskColumnRepository;
 import com.mittyboard.repository.TaskRepository;
 import com.mittyboard.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TaskService {
 
+    private final SimpMessagingTemplate messagingTemplate;
     private final TaskRepository taskRepository;
     private final TaskColumnRepository taskColumnRepository;
     private final CurrentUserService currentUserService;
@@ -44,6 +46,8 @@ public class TaskService {
                 .build();
 
         Task savedTask = taskRepository.save(task);
+
+        messagingTemplate.convertAndSend("/topic/boards/" + savedTask.getColumn().getBoard().getId(), savedTask);
 
         return mapToResponse(savedTask);
     }
@@ -97,6 +101,8 @@ public class TaskService {
 
         Task updatedTask = taskRepository.save(task);
 
+        messagingTemplate.convertAndSend("/topic/boards/" + updatedTask.getColumn().getBoard().getId(), updatedTask);
+
         return mapToResponse(updatedTask);
     }
 
@@ -110,7 +116,12 @@ public class TaskService {
             throw new UnauthorizedAccessException("You are not authorized to delete this Task!");
         }
 
+
+        Long boardId = task.getColumn().getBoard().getId();
+
         taskRepository.delete(task);
+
+        messagingTemplate.convertAndSend("/topic/boards/" + boardId, taskId);
     }
 
     private TaskResponse mapToResponse(Task task) {
