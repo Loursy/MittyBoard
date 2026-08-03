@@ -1,13 +1,13 @@
 package com.mittyboard.controller;
 
-
 import com.mittyboard.dto.UserRequest;
 import com.mittyboard.dto.UserResponse;
 import com.mittyboard.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -19,10 +19,12 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@RequestBody UserRequest request) {
         UserResponse response = userService.createUser(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+
+        URI location = URI.create("/api/v1/users/" + response.getId());
+        return ResponseEntity.created(location).body(response);
     }
 
-    @PutMapping("/me")
+    @PatchMapping("/me")
     public ResponseEntity<UserResponse> updateCurrentUser(
             @RequestBody UserRequest request
     ) {
