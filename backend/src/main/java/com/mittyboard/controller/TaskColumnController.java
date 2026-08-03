@@ -4,10 +4,10 @@ import com.mittyboard.dto.TaskColumnRequest;
 import com.mittyboard.dto.TaskColumnResponse;
 import com.mittyboard.service.TaskColumnService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -17,19 +17,26 @@ public class TaskColumnController {
 
     private final TaskColumnService taskColumnService;
 
-    @PostMapping
-    public ResponseEntity<TaskColumnResponse> createColumn(@RequestBody TaskColumnRequest request) {
-        TaskColumnResponse response = taskColumnService.createColumn(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+
+    @PostMapping("/boards/{boardId}")
+    public ResponseEntity<TaskColumnResponse> createColumn(
+            @PathVariable Long boardId,
+            @RequestBody TaskColumnRequest request) {
+
+        TaskColumnResponse response = taskColumnService.createColumn(boardId, request);
+
+        URI location = URI.create("/api/v1/columns/" + response.getId());
+        return ResponseEntity.created(location).body(response);
     }
 
-    @GetMapping
-    public ResponseEntity<List<TaskColumnResponse>> getColumns(@RequestParam Long boardId) {
+    @GetMapping("/boards/{boardId}")
+    public ResponseEntity<List<TaskColumnResponse>> getColumns(@PathVariable Long boardId) {
+
         List<TaskColumnResponse> responses = taskColumnService.getColumnsByBoard(boardId);
         return ResponseEntity.ok(responses);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<TaskColumnResponse> updateColumn(
             @PathVariable Long id,
             @RequestBody TaskColumnRequest request
@@ -40,6 +47,7 @@ public class TaskColumnController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteColumn(@PathVariable Long id) {
+
         taskColumnService.deleteTaskColumn(id);
         return ResponseEntity.noContent().build();
     }

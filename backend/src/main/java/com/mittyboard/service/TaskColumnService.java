@@ -5,6 +5,8 @@ import com.mittyboard.dto.TaskColumnResponse;
 import com.mittyboard.entity.Board;
 import com.mittyboard.entity.TaskColumn;
 import com.mittyboard.entity.User;
+import com.mittyboard.exception.ResourceNotFoundException;
+import com.mittyboard.exception.UnauthorizedAccessException;
 import com.mittyboard.repository.BoardRepository;
 import com.mittyboard.repository.TaskColumnRepository;
 import com.mittyboard.security.CurrentUserService;
@@ -22,14 +24,14 @@ public class TaskColumnService {
     private final BoardRepository boardRepository;
     private final CurrentUserService currentUserService;
 
-    public TaskColumnResponse createColumn(TaskColumnRequest request) {
+    public TaskColumnResponse createColumn(Long boardId, TaskColumnRequest request) {
         User currentUser = currentUserService.getAuthenticatedUser();
 
-        Board board = boardRepository.findById(request.getBoardId())
-                .orElseThrow(() -> new RuntimeException("Board is not found."));
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new ResourceNotFoundException("Board is not found."));
 
         if (!board.getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to add column to this board");
+            throw new UnauthorizedAccessException("You are not authorized to add a column to this board");
         }
 
         TaskColumn column = TaskColumn.builder()
@@ -47,10 +49,10 @@ public class TaskColumnService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new RuntimeException("Board is not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Board is not found."));
 
         if (!board.getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You don't have the access to see the columns in this board.");
+            throw new UnauthorizedAccessException("You don't have the access to see the columns in this board.");
         }
 
         List<TaskColumn> columns = taskColumnRepository.findByBoardIdOrderByPositionAsc(boardId);
@@ -64,17 +66,17 @@ public class TaskColumnService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         TaskColumn taskColumn = taskColumnRepository.findById(taskcolumnId)
-                .orElseThrow(() -> new RuntimeException("Task Column cannot be found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Task Column cannot be found."));
 
-        if(!taskColumn.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to update this column");
+        if (!taskColumn.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedAccessException("You are not authorized to update this column");
         }
 
-        if(request.getTitle() != null) {
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
             taskColumn.setTitle(request.getTitle());
         }
 
-        if(request.getPosition() != null) {
+        if (request.getPosition() != null) {
             taskColumn.setPosition(request.getPosition());
         }
 
@@ -86,10 +88,10 @@ public class TaskColumnService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         TaskColumn taskColumn = taskColumnRepository.findById(taskcolumnId)
-                .orElseThrow(() -> new RuntimeException("Task Column cannot be found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task Column cannot be found!"));
 
-        if(!taskColumn.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to delete this Task Column!");
+        if (!taskColumn.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedAccessException("You are not authorized to delete this Task Column!");
         }
 
         taskColumnRepository.delete(taskColumn);
