@@ -4,6 +4,8 @@ import com.mittyboard.dto.WorkspaceRequest;
 import com.mittyboard.dto.WorkspaceResponse;
 import com.mittyboard.entity.User;
 import com.mittyboard.entity.Workspace;
+import com.mittyboard.exception.ResourceNotFoundException;
+import com.mittyboard.exception.UnauthorizedAccessException;
 import com.mittyboard.repository.WorkspaceRepository;
 import com.mittyboard.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
@@ -45,27 +47,17 @@ public class WorkspacesService {
                 .collect(Collectors.toList());
     }
 
-    private WorkspaceResponse mapToResponse(Workspace workspace) {
-        return WorkspaceResponse.builder()
-                .id(workspace.getId())
-                .name(workspace.getName())
-                .description(workspace.getDescription())
-                .ownerId(workspace.getOwner().getId())
-                .createdAt(workspace.getCreatedAt())
-                .build();
-    }
-
     public WorkspaceResponse updateWorkspace(Long workspaceId, WorkspaceRequest request) {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new RuntimeException("Workspace cannot be found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace cannot be found"));
 
         if (!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to delete this workspace");
+            throw new UnauthorizedAccessException("You are not authorized to update this workspace");
         }
 
-        if(request.getName() != null) {
+        if(request.getName() != null && !request.getName().isBlank()) {
             workspace.setName(request.getName());
         }
 
@@ -81,12 +73,22 @@ public class WorkspacesService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new RuntimeException("Workspace cannot be found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace cannot be found!"));
 
         if (!workspace.getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to delete this workspace");
+            throw new UnauthorizedAccessException("You are not authorized to delete this workspace");
         }
 
         workspaceRepository.delete(workspace);
+    }
+
+    private WorkspaceResponse mapToResponse(Workspace workspace) {
+        return WorkspaceResponse.builder()
+                .id(workspace.getId())
+                .name(workspace.getName())
+                .description(workspace.getDescription())
+                .ownerId(workspace.getOwner().getId())
+                .createdAt(workspace.getCreatedAt())
+                .build();
     }
 }

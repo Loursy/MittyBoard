@@ -4,10 +4,10 @@ import com.mittyboard.dto.WorkspaceRequest;
 import com.mittyboard.dto.WorkspaceResponse;
 import com.mittyboard.service.WorkspacesService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -22,7 +22,9 @@ public class WorkspaceController {
             @RequestBody WorkspaceRequest request
     ) {
         WorkspaceResponse response = workspacesService.createWorkspace(request);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+
+        URI location = URI.create("/api/v1/workspaces/" + response.getId());
+        return ResponseEntity.created(location).body(response);
     }
 
     @GetMapping
@@ -31,7 +33,7 @@ public class WorkspaceController {
         return ResponseEntity.ok(responses);
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<WorkspaceResponse> updateWorkspace(
             @PathVariable Long id,
             @RequestBody WorkspaceRequest request
