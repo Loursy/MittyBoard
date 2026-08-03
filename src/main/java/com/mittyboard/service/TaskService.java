@@ -5,6 +5,8 @@ import com.mittyboard.dto.TaskResponse;
 import com.mittyboard.entity.Task;
 import com.mittyboard.entity.TaskColumn;
 import com.mittyboard.entity.User;
+import com.mittyboard.exception.ResourceNotFoundException;
+import com.mittyboard.exception.UnauthorizedAccessException;
 import com.mittyboard.repository.TaskColumnRepository;
 import com.mittyboard.repository.TaskRepository;
 import com.mittyboard.security.CurrentUserService;
@@ -22,15 +24,16 @@ public class TaskService {
     private final TaskColumnRepository taskColumnRepository;
     private final CurrentUserService currentUserService;
 
-    public TaskResponse createTask(TaskRequest request) {
+    public TaskResponse createTask(Long columnId, TaskRequest request) {
         User currentUser = currentUserService.getAuthenticatedUser();
 
-        TaskColumn column = taskColumnRepository.findById(request.getColumnId())
-                .orElseThrow(() -> new RuntimeException("Column cannot be found!"));
+        TaskColumn column = taskColumnRepository.findById(columnId)
+                .orElseThrow(() -> new ResourceNotFoundException("Column cannot be found!"));
 
         if (!column.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to add Tasks to this Column");
+            throw new UnauthorizedAccessException("You are not authorized to add Tasks to this Column");
         }
+
         Task task = Task.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -49,10 +52,10 @@ public class TaskService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         TaskColumn column = taskColumnRepository.findById(columnId)
-                .orElseThrow(() -> new RuntimeException("Column cannot be found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Column cannot be found!"));
 
         if (!column.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You don't have access to see this column");
+            throw new UnauthorizedAccessException("You don't have access to see this column");
         }
 
         List<Task> tasks = taskRepository.findByColumnIdOrderByPositionAsc(columnId);
@@ -66,13 +69,13 @@ public class TaskService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task cannot be found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task cannot be found!"));
 
-        if(!task.getColumn().getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to update this task!");
+        if (!task.getColumn().getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedAccessException("You are not authorized to update this task!");
         }
 
-        if (request.getTitle() != null) {
+        if (request.getTitle() != null && !request.getTitle().isBlank()) {
             task.setTitle(request.getTitle());
         }
 
@@ -101,10 +104,10 @@ public class TaskService {
         User currentUser = currentUserService.getAuthenticatedUser();
 
         Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task cannot be found!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task cannot be found!"));
 
-        if(!task.getColumn().getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("You are not authorized to delete this Task!");
+        if (!task.getColumn().getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedAccessException("You are not authorized to delete this Task!");
         }
 
         taskRepository.delete(task);
