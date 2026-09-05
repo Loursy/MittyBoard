@@ -4,7 +4,7 @@ set -euxo pipefail
 # Amazon Linux 2023 doesn't ship git, and Docker's official convenience
 # script (get.docker.com) explicitly refuses to run on it ("Unsupported
 # distribution 'amzn'") — use AL2023's own docker package instead.
-dnf install -y git docker
+dnf install -y git docker nginx python3-pip
 systemctl enable --now docker
 
 # AL2023's docker package bundles neither the `docker compose` nor the
@@ -23,20 +23,99 @@ curl -fsSL "https://github.com/docker/buildx/releases/download/$${BUILDX_VERSION
   -o "$DOCKER_CLI_PLUGINS/docker-buildx"
 chmod +x "$DOCKER_CLI_PLUGINS/docker-buildx"
 
-# This instance's IMDS enforces IMDSv2 (token-required); a plain unauthenticated
-# GET against the metadata endpoint returns 401 and curl -s swallows it as an
-# empty body, silently leaving PUBLIC_IP blank.
-IMDS_TOKEN=$(curl -fsSL -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-PUBLIC_IP=$(curl -fsSL -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+# Terraform already knows this instance's address (it's an Elastic IP,
+# allocated before this instance even exists) — no need to ask IMDS at boot.
+PUBLIC_IP="${public_ip}"
+DOMAIN="${domain_name}"
 
 git clone --branch main --depth 1 "https://github.com/${github_repo}.git" /opt/mittyboard
 cd /opt/mittyboard
 
-cat > .env <<EOF
+if [ -n "$DOMAIN" ]; then
+  # Everything served same-origin through nginx on the domain, so the
+  # frontend's API calls are relative — no CORS involved at all for real
+  # traffic. http:// is kept alongside https:// only for the brief window
+  # before certbot's redirect is in place.
+  cat > .env <<EOF
+DB_PASSWORD=${db_password}
+JWT_SECRET_KEY=${jwt_secret_key}
+VITE_API_URL=
+CORS_ALLOWED_ORIGINS=https://$${DOMAIN},http://$${DOMAIN}
+EOF
+else
+  cat > .env <<EOF
 DB_PASSWORD=${db_password}
 JWT_SECRET_KEY=${jwt_secret_key}
 VITE_API_URL=http://$${PUBLIC_IP}:8080
 CORS_ALLOWED_ORIGINS=http://$${PUBLIC_IP}:5173
 EOF
+fi
 
 docker compose up -d --build
+
+# --- Domain + HTTPS (optional) ----------------------------------------------
+# Wrapped so that a failure here (DNS not propagated yet, rate limits, etc.)
+# never takes down the app itself, which is already up at this point via
+# the plain IP:5173/IP:8080 ports.
+if [ -n "$DOMAIN" ]; then
+  set +e
+
+  if [ -n "${duckdns_token}" ]; then
+    SUBDOMAIN="$${DOMAIN%%.duckdns.org}"
+    curl -fsS "https://www.duckdns.org/update?domains=$${SUBDOMAIN}&token=${duckdns_token}&ip=$${PUBLIC_IP}"
+    echo "DuckDNS update exit code: $?"
+  fi
+
+  # Give DNS a moment to propagate before certbot tries to validate.
+  sleep 20
+
+  cat > /etc/nginx/conf.d/mittyboard.conf <<'NGINXEOF'
+server {
+    listen 80;
+    server_name DOMAIN_PLACEHOLDER;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:5173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINXEOF
+  sed -i "s/DOMAIN_PLACEHOLDER/$DOMAIN/" /etc/nginx/conf.d/mittyboard.conf
+
+  systemctl enable --now nginx
+  nginx -t && systemctl reload nginx
+
+  python3 -m pip install --upgrade pip
+  python3 -m pip install certbot certbot-nginx
+
+  CERTBOT_EMAIL_ARGS="--register-unsafely-without-email"
+  if [ -n "${letsencrypt_email}" ]; then
+    CERTBOT_EMAIL_ARGS="-m ${letsencrypt_email}"
+  fi
+
+  certbot --nginx --non-interactive --agree-tos $CERTBOT_EMAIL_ARGS -d "$DOMAIN" --redirect
+  echo "certbot exit code: $?"
+
+  echo "0 3 * * * root $(command -v certbot) renew --quiet" > /etc/cron.d/certbot-renew
+
+  set -e
+fi

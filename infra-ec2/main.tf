@@ -45,12 +45,37 @@ resource "aws_security_group" "this" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "HTTP (Let's Encrypt challenge + redirect to HTTPS)"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+# Allocated independently of the instance so its address is already known
+# when we render user_data below — no more discovering the public IP at
+# boot time via instance metadata (which is what bit us with the IMDSv2
+# token requirement). Free while associated with a running instance, and
+# it survives `user_data_replace_on_change` instance replacements.
+resource "aws_eip" "this" {
+  domain = "vpc"
 }
 
 resource "aws_instance" "this" {
@@ -65,13 +90,22 @@ resource "aws_instance" "this" {
   }
 
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
-    github_repo    = var.github_repo
-    db_password    = var.db_password
-    jwt_secret_key = var.jwt_secret_key
+    github_repo       = var.github_repo
+    db_password       = var.db_password
+    jwt_secret_key    = var.jwt_secret_key
+    public_ip         = aws_eip.this.public_ip
+    domain_name       = var.domain_name
+    duckdns_token     = var.duckdns_token
+    letsencrypt_email = var.letsencrypt_email
   })
   user_data_replace_on_change = true
 
   tags = {
     Name = var.project_name
   }
+}
+
+resource "aws_eip_association" "this" {
+  instance_id   = aws_instance.this.id
+  allocation_id = aws_eip.this.id
 }

@@ -47,3 +47,26 @@ variable "jwt_secret_key" {
   type        = string
   sensitive   = true
 }
+
+variable "domain_name" {
+  description = <<-EOT
+    Domain to serve the app from over HTTPS (e.g. a free DuckDNS subdomain
+    like "mittyboard.duckdns.org"). Leave empty ("") to skip the nginx +
+    Let's Encrypt setup entirely and keep the plain http://IP:5173 setup.
+  EOT
+  type    = string
+  default = ""
+}
+
+variable "duckdns_token" {
+  description = "Token from your DuckDNS account page (duckdns.org) — used to point domain_name at this instance's Elastic IP automatically. Only used if domain_name is set."
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "letsencrypt_email" {
+  description = "Email for Let's Encrypt certificate expiry notices. Required if domain_name is set."
+  type    = string
+  default = ""
+}
