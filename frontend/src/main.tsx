@@ -20,6 +20,8 @@ createRoot(document.getElementById("root")!).render(
               border: "1px solid #2a2e40",
               fontSize: "0.875rem",
             },
+            success: { iconTheme: { primary: "#10b981", secondary: "#191c28" } },
+            error: { iconTheme: { primary: "#f43f5e", secondary: "#191c28" } },
           }}
         />
       </AuthProvider>

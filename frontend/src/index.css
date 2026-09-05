@@ -32,9 +32,27 @@
     @apply bg-[var(--color-surface-0)] text-slate-100 antialiased;
     font-family: var(--font-sans);
     background-image:
-      radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.12), transparent 45%),
-      radial-gradient(circle at 85% 20%, rgba(168, 85, 247, 0.10), transparent 40%);
+      radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.14), transparent 45%),
+      radial-gradient(circle at 85% 15%, rgba(168, 85, 247, 0.11), transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(56, 189, 248, 0.06), transparent 50%);
     background-attachment: fixed;
+  }
+
+  /* A faint grain layer keeps large flat dark areas from looking dead/banded —
+     cheap perceived-depth trick, invisible as a "texture" but felt as one. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
   }
 
   ::selection {
@@ -90,11 +108,166 @@
   }
 
   .glass-panel {
-    background: color-mix(in oklab, var(--color-surface-1) 92%, transparent);
-    backdrop-filter: blur(12px);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 30%),
+      color-mix(in oklab, var(--color-surface-1) 92%, transparent);
+    backdrop-filter: blur(16px);
+    box-shadow:
+      0 8px 16px -8px rgba(0, 0, 0, 0.5),
+      0 32px 64px -16px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   }
 
   .focus-ring {
     @apply outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface-0)];
+  }
+
+  /* Elevation system: layered shadows (a tight contact shadow + a soft, wide
+     ambient one) read as far more "real" than a single blurred shadow. */
+  .elevation-1 {
+    box-shadow:
+      0 1px 2px -1px rgba(0, 0, 0, 0.4),
+      0 2px 6px -2px rgba(0, 0, 0, 0.3);
+  }
+  .elevation-2 {
+    box-shadow:
+      0 2px 4px -2px rgba(0, 0, 0, 0.45),
+      0 12px 24px -8px rgba(0, 0, 0, 0.45),
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  }
+  .elevation-3 {
+    box-shadow:
+      0 4px 8px -4px rgba(0, 0, 0, 0.5),
+      0 24px 48px -12px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  }
+
+  /* Subtle top highlight, as if lit from above — gives flat cards a sense of
+     surface/material instead of a plain fill. */
+  .surface-sheen {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 40%),
+      var(--color-surface-1);
+  }
+
+  /* Self-contained "interactive elevated card" recipe — idle + deeper hover
+     shadow baked in directly, since Tailwind v4 custom classes need the
+     @utility at-rule (not @layer utilities) to compose with hover:/etc. */
+  .card-lift {
+    transition:
+      transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 220ms ease;
+    box-shadow:
+      0 1px 2px -1px rgba(0, 0, 0, 0.4),
+      0 2px 6px -2px rgba(0, 0, 0, 0.3);
+  }
+  .card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 2px 4px -2px rgba(0, 0, 0, 0.45),
+      0 16px 32px -10px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  }
+  .card-lift:active {
+    transform: translateY(-1px);
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -150% 0;
+    }
+  }
+  .skeleton {
+    background-image: linear-gradient(
+      110deg,
+      var(--color-surface-2) 30%,
+      var(--color-surface-3) 50%,
+      var(--color-surface-2) 70%
+    );
+    background-size: 250% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  /* Page-level entrance: a bit more travel than pop-in so a whole view
+     reads as "arriving" rather than a modal-style pop. animation-fill-mode
+     both keeps it invisible pre-delay, so it composes with a stagger. */
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-rise-in {
+    animation: rise-in 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Opacity-only stagger for sortable list items (dnd-kit drives `transform`
+     on these elements directly via inline style, so the entrance animation
+     must never touch transform or it fights the drag positioning). */
+  .animate-fade-in-stagger {
+    animation: fade-in 320ms ease-out both;
+  }
+
+  /* Slow drifting ambient blobs behind the auth cards. */
+  @keyframes float-a {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(24px, -18px) scale(1.08);
+    }
+  }
+  @keyframes float-b {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(-20px, 22px) scale(1.05);
+    }
+  }
+  .animate-float-a {
+    animation: float-a 13s ease-in-out infinite;
+  }
+  .animate-float-b {
+    animation: float-b 16s ease-in-out infinite;
+  }
+
+  /* Soft breathing glow on the urgent-priority accent strip — draws the eye
+     without a jarring blink. */
+  @keyframes urgent-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.55);
+    }
+    50% {
+      box-shadow: 0 0 9px 1.5px rgba(244, 63, 94, 0.4);
+    }
+  }
+  .animate-urgent-pulse {
+    animation: urgent-pulse 2.4s ease-in-out infinite;
+  }
+}
+
+/* Respect the user's motion preference: collapse every animation/transition
+   to effectively instant instead of disabling them outright, so elements
+   still land in their final (usually opacity: 1) state. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

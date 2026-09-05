@@ -10,22 +10,27 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates, SortableContext } from "@dnd-kit/sortable";
-import { ArrowLeft, LayoutGrid } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { boardsApi } from "../api/boards";
 import { columnsApi } from "../api/columns";
 import { tasksApi } from "../api/tasks";
+import { workspacesApi } from "../api/workspaces";
 import { Column } from "../components/kanban/Column";
 import { ColumnFormModal } from "../components/kanban/ColumnFormModal";
 import { InlineAddForm } from "../components/kanban/InlineAddForm";
 import { type TaskFormValues, TaskFormModal } from "../components/kanban/TaskFormModal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
-import { Spinner } from "../components/ui/Spinner";
+import { ProgressBar } from "../components/ui/ProgressBar";
+import { BoardSkeleton } from "../components/ui/Skeleton";
+import { useBreadcrumbs } from "../hooks/useBreadcrumbs";
 import { apiErrorMessage } from "../lib/api";
-import type { Board, Task, TaskColumn, TaskRequest } from "../types";
+import { priorityAccentColor } from "../lib/priorityColors";
+import { taskStats } from "../lib/taskStats";
+import type { Board, Task, TaskColumn, TaskRequest, Workspace } from "../types";
 
 type DragData =
   | { type: "task"; taskId: number; columnId: number }
@@ -36,6 +41,8 @@ export function BoardPage() {
   const wsId = Number(workspaceId);
   const brdId = Number(boardId);
 
+  const { setCrumbs } = useBreadcrumbs();
+  const [workspace, setWorkspace] = useState<Workspace | null | undefined>(undefined);
   const [board, setBoard] = useState<Board | null | undefined>(undefined);
   const [columns, setColumns] = useState<TaskColumn[] | null>(null);
   const [tasksByColumn, setTasksByColumn] = useState<Record<number, Task[]>>({});
@@ -53,6 +60,11 @@ export function BoardPage() {
 
   useEffect(() => {
     if (!Number.isFinite(wsId) || !Number.isFinite(brdId)) return;
+
+    workspacesApi
+      .list()
+      .then((all) => setWorkspace(all.find((w) => w.id === wsId) ?? null))
+      .catch(() => setWorkspace(null));
 
     boardsApi
       .listByWorkspace(wsId)
@@ -77,6 +89,15 @@ export function BoardPage() {
       }
     })();
   }, [wsId, brdId]);
+
+  useEffect(() => {
+    setCrumbs([
+      { label: "Workspaces", to: "/" },
+      { label: workspace === undefined ? "Loading…" : (workspace?.name ?? "Workspace"), to: `/workspaces/${wsId}` },
+      { label: board === undefined ? "Loading…" : (board?.title ?? "Board") },
+    ]);
+    return () => setCrumbs([]);
+  }, [setCrumbs, workspace, board, wsId]);
 
   if (!Number.isFinite(wsId) || !Number.isFinite(brdId)) return <Navigate to="/" replace />;
 
@@ -221,25 +242,26 @@ export function BoardPage() {
     activeDrag?.type === "task" ? tasksByColumn[activeDrag.columnId]?.find((t) => t.id === activeDrag.taskId) : null;
   const activeColumn = activeDrag?.type === "column" ? columns?.find((c) => c.id === activeDrag.columnId) : null;
 
+  const stats = taskStats(Object.values(tasksByColumn).flat());
+
   return (
-    <div className="flex h-full flex-col">
-      <Link
-        to={`/workspaces/${wsId}`}
-        className="mb-4 inline-flex w-fit items-center gap-1.5 text-sm text-slate-400 hover:text-white"
-      >
-        <ArrowLeft className="size-4" />
-        Boards
-      </Link>
+    <div className="animate-rise-in flex h-full flex-col">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <h1 className="text-xl font-semibold text-white">
+          {board === undefined ? "Loading…" : (board?.title ?? "Board")}
+        </h1>
 
-      <h1 className="mb-6 text-xl font-semibold text-white">
-        {board === undefined ? "Loading…" : (board?.title ?? "Board")}
-      </h1>
+        {stats.total > 0 && (
+          <div className="flex min-w-[12rem] items-center gap-2.5">
+            <ProgressBar {...stats} className="w-32 sm:w-44" />
+            <span className="shrink-0 whitespace-nowrap text-xs font-medium tabular-nums text-slate-400">
+              {stats.done} / {stats.total} done
+            </span>
+          </div>
+        )}
+      </div>
 
-      {columns === null && (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
-        </div>
-      )}
+      {columns === null && <BoardSkeleton />}
 
       {columns?.length === 0 && (
         <EmptyState
@@ -258,11 +280,12 @@ export function BoardPage() {
         >
           <div className="flex flex-1 items-start gap-4 overflow-x-auto pb-4">
             <SortableContext items={columns.map((c) => `column-${c.id}`)} strategy={horizontalListSortingStrategy}>
-              {columns.map((column) => (
+              {columns.map((column, index) => (
                 <Column
                   key={column.id}
                   column={column}
                   tasks={tasksByColumn[column.id] ?? []}
+                  index={index}
                   onRename={() => setRenamingColumn(column)}
                   onDelete={() => setDeletingColumn(column)}
                   onAddTask={(title) => handleAddTask(column, title)}
@@ -279,12 +302,15 @@ export function BoardPage() {
 
           <DragOverlay>
             {activeTask && (
-              <div className="w-72 rounded-xl border border-indigo-400/50 bg-[var(--color-surface-2)] p-3 shadow-2xl shadow-black/40">
+              <div
+                className="w-72 rotate-2 scale-[1.03] rounded-xl border bg-[var(--color-surface-2)] p-3 shadow-2xl shadow-black/50 ring-4 ring-black/10"
+                style={{ borderColor: priorityAccentColor[activeTask.priority] }}
+              >
                 <p className="text-sm font-medium text-slate-100">{activeTask.title}</p>
               </div>
             )}
             {activeColumn && (
-              <div className="w-72 rounded-2xl border border-indigo-400/50 bg-[var(--color-surface-1)] p-3 shadow-2xl shadow-black/40">
+              <div className="w-72 rotate-1 scale-[1.02] rounded-2xl border border-indigo-400/60 bg-[var(--color-surface-1)] p-3 shadow-2xl shadow-black/50 ring-4 ring-black/10">
                 <p className="text-sm font-semibold text-slate-100">{activeColumn.title}</p>
               </div>
             )}

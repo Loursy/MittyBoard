@@ -1,3 +1,4 @@
+import { Users } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Field";
@@ -54,7 +55,7 @@ export function WorkspaceFormModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title}>
+    <Modal isOpen={isOpen} onClose={onClose} title={title} icon={<Users className="size-4.5 text-indigo-300" />}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Field label="Name" htmlFor="workspace-name">
           <Input

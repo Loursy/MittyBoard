@@ -1,6 +1,7 @@
 import { LayoutGrid } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import { AuthBackdrop } from "../components/ui/AuthBackdrop";
 import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
 import { Input } from "../components/ui/Input";
@@ -35,8 +36,9 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="animate-pop-in glass-panel w-full max-w-sm rounded-2xl border border-[var(--color-border)] p-7 shadow-2xl shadow-black/40">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <AuthBackdrop />
+      <div className="animate-pop-in glass-panel relative z-10 w-full max-w-sm rounded-2xl border border-[var(--color-border)] p-7 shadow-2xl shadow-black/40">
         <div className="mb-6 flex flex-col items-center text-center">
           <span className="mb-3 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500">
             <LayoutGrid className="size-5 text-white" />
