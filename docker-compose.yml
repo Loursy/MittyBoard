@@ -31,7 +31,11 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+        # Single dash, not double: `:-` treats an explicitly empty
+        # VITE_API_URL (same-origin/relative API calls, e.g. behind the
+        # nginx+domain EC2 setup) as "unset" and silently falls back to the
+        # default — `-` only falls back when the var is truly undefined.
+        VITE_API_URL: ${VITE_API_URL-http://localhost:8080}
     ports:
       - "5173:80"
     depends_on:
