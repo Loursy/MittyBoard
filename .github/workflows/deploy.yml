@@ -1,0 +1,113 @@
+name: Deploy to AWS
+
+# Requires the infra/ Terraform to already be applied once (creates the ECR
+# repos, ECS cluster/services, and the OIDC deploy role), and a repo secret
+# AWS_DEPLOY_ROLE_ARN set to the `github_actions_deploy_role_arn` Terraform
+# output. No long-lived AWS keys are used — auth is via OIDC.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-central-1
+  ECS_CLUSTER: mittyboard-cluster
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - name: Build and push image
+        working-directory: backend
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$REGISTRY/mittyboard-backend:$IMAGE_TAG" .
+          docker push "$REGISTRY/mittyboard-backend:$IMAGE_TAG"
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition --task-definition mittyboard-backend \
+            --query taskDefinition > backend-task-def.json
+
+      - name: Render new task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: backend-task-def.json
+          container-name: backend
+          image: ${{ steps.ecr.outputs.registry }}/mittyboard-backend:${{ github.sha }}
+
+      - name: Deploy
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: mittyboard-backend
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - name: Build and push image
+        working-directory: frontend
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Empty VITE_API_URL: the ALB routes /api and /ws to the backend
+          # service on the same origin, so the frontend never needs a
+          # separate API host baked in (and doesn't need CORS at all).
+          docker build --build-arg VITE_API_URL= -t "$REGISTRY/mittyboard-frontend:$IMAGE_TAG" .
+          docker push "$REGISTRY/mittyboard-frontend:$IMAGE_TAG"
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition --task-definition mittyboard-frontend \
+            --query taskDefinition > frontend-task-def.json
+
+      - name: Render new task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: frontend-task-def.json
+          container-name: frontend
+          image: ${{ steps.ecr.outputs.registry }}/mittyboard-frontend:${{ github.sha }}
+
+      - name: Deploy
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: mittyboard-frontend
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

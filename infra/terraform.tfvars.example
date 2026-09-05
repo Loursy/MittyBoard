@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (gitignored) and fill in real values, or pass
+# these as TF_VAR_db_password / TF_VAR_jwt_secret_key environment variables
+# instead so nothing sensitive ever touches disk in plaintext.
+
+aws_region     = "eu-central-1"
+db_password    = "changeme"
+jwt_secret_key = "changeme-generate-with-openssl-rand-base64-48"
