@@ -1,3 +1,4 @@
+import { AlertTriangle, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./Button";
 import { Modal } from "./Modal";
@@ -34,7 +35,20 @@ export function ConfirmDialog({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} description={description} size="sm">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      description={description}
+      size="sm"
+      icon={
+        danger ? (
+          <AlertTriangle className="size-4.5 text-rose-300" />
+        ) : (
+          <HelpCircle className="size-4.5 text-indigo-300" />
+        )
+      }
+    >
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
           Cancel

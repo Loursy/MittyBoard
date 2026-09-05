@@ -1,3 +1,4 @@
+import { ListChecks } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Field";
@@ -69,7 +70,7 @@ export function TaskFormModal({ isOpen, onClose, onSubmit, initialValues, title,
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg" icon={<ListChecks className="size-4.5 text-indigo-300" />}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Field label="Title" htmlFor="task-title">
           <Input

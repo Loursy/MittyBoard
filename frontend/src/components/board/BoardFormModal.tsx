@@ -1,3 +1,4 @@
+import { LayoutGrid } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Field";
@@ -46,7 +47,13 @@ export function BoardFormModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      size="sm"
+      icon={<LayoutGrid className="size-4.5 text-indigo-300" />}
+    >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Field label="Board title" htmlFor="board-title">
           <Input

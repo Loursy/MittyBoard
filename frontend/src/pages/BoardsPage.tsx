@@ -1,20 +1,23 @@
-import { ArrowLeft, LayoutGrid, Plus } from "lucide-react";
+import { LayoutGrid, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { boardsApi } from "../api/boards";
 import { workspacesApi } from "../api/workspaces";
 import { BoardCard } from "../components/board/BoardCard";
 import { BoardFormModal } from "../components/board/BoardFormModal";
+import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
-import { Spinner } from "../components/ui/Spinner";
+import { CardGridSkeleton } from "../components/ui/Skeleton";
+import { useBreadcrumbs } from "../hooks/useBreadcrumbs";
 import { apiErrorMessage } from "../lib/api";
 import type { Board, Workspace } from "../types";
 
 export function BoardsPage() {
   const { workspaceId } = useParams();
   const id = Number(workspaceId);
+  const { setCrumbs } = useBreadcrumbs();
 
   const [workspace, setWorkspace] = useState<Workspace | null | undefined>(undefined);
   const [boards, setBoards] = useState<Board[] | null>(null);
@@ -35,6 +38,14 @@ export function BoardsPage() {
       .then(setBoards)
       .catch((err) => toast.error(apiErrorMessage(err, "Couldn't load boards.")));
   }, [id]);
+
+  useEffect(() => {
+    setCrumbs([
+      { label: "Workspaces", to: "/" },
+      { label: workspace === undefined ? "Loading…" : (workspace?.name ?? "Workspace") },
+    ]);
+    return () => setCrumbs([]);
+  }, [setCrumbs, workspace]);
 
   if (!Number.isFinite(id)) return <Navigate to="/" replace />;
 
@@ -64,11 +75,6 @@ export function BoardsPage() {
 
   return (
     <div>
-      <Link to="/" className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white">
-        <ArrowLeft className="size-4" />
-        Workspaces
-      </Link>
-
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">
@@ -76,20 +82,13 @@ export function BoardsPage() {
           </h1>
           {workspace?.description && <p className="mt-1 text-sm text-slate-400">{workspace.description}</p>}
         </div>
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="focus-ring inline-flex h-10 shrink-0 items-center gap-2 rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-600 px-4 text-sm font-medium text-white shadow-sm shadow-indigo-950/50 hover:from-indigo-400 hover:to-indigo-500"
-        >
+        <Button variant="primary" className="shrink-0" onClick={() => setIsCreateOpen(true)}>
           <Plus className="size-4" />
           New board
-        </button>
+        </Button>
       </div>
 
-      {boards === null && (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
-        </div>
-      )}
+      {boards === null && <CardGridSkeleton count={6} />}
 
       {boards?.length === 0 && (
         <EmptyState
@@ -97,26 +96,20 @@ export function BoardsPage() {
           title="No boards yet"
           description="Create a board to start tracking tasks in columns."
           action={
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="focus-ring inline-flex h-9 items-center gap-2 rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-600 px-3.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-indigo-500"
-            >
+            <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
               <Plus className="size-4" />
               New board
-            </button>
+            </Button>
           }
         />
       )}
 
       {boards && boards.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {boards.map((board) => (
-            <BoardCard
-              key={board.id}
-              board={board}
-              onEdit={() => setEditingBoard(board)}
-              onDelete={() => setDeletingBoard(board)}
-            />
+          {boards.map((board, i) => (
+            <div key={board.id} className="animate-rise-in" style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}>
+              <BoardCard board={board} onEdit={() => setEditingBoard(board)} onDelete={() => setDeletingBoard(board)} />
+            </div>
           ))}
         </div>
       )}

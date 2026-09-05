@@ -2,19 +2,27 @@ import { Plus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { workspacesApi } from "../api/workspaces";
+import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
-import { Spinner } from "../components/ui/Spinner";
+import { CardGridSkeleton } from "../components/ui/Skeleton";
 import { WorkspaceCard } from "../components/workspace/WorkspaceCard";
 import { WorkspaceFormModal } from "../components/workspace/WorkspaceFormModal";
+import { useBreadcrumbs } from "../hooks/useBreadcrumbs";
 import { apiErrorMessage } from "../lib/api";
 import type { Workspace } from "../types";
 
 export function WorkspacesPage() {
+  const { setCrumbs } = useBreadcrumbs();
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<Workspace | null>(null);
   const [deletingWorkspace, setDeletingWorkspace] = useState<Workspace | null>(null);
+
+  useEffect(() => {
+    setCrumbs([{ label: "Workspaces" }]);
+    return () => setCrumbs([]);
+  }, [setCrumbs]);
 
   useEffect(() => {
     workspacesApi
@@ -57,20 +65,13 @@ export function WorkspacesPage() {
           <h1 className="text-xl font-semibold text-white">Workspaces</h1>
           <p className="mt-1 text-sm text-slate-400">Pick a workspace to see its boards.</p>
         </div>
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="focus-ring inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-600 px-4 text-sm font-medium text-white shadow-sm shadow-indigo-950/50 hover:from-indigo-400 hover:to-indigo-500"
-        >
+        <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
           <Plus className="size-4" />
           New workspace
-        </button>
+        </Button>
       </div>
 
-      {workspaces === null && (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
-        </div>
-      )}
+      {workspaces === null && <CardGridSkeleton count={6} />}
 
       {workspaces?.length === 0 && (
         <EmptyState
@@ -78,26 +79,24 @@ export function WorkspacesPage() {
           title="No workspaces yet"
           description="Create a workspace to start organizing boards for your team or project."
           action={
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="focus-ring inline-flex h-9 items-center gap-2 rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-600 px-3.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-indigo-500"
-            >
+            <Button variant="primary" size="sm" onClick={() => setIsCreateOpen(true)}>
               <Plus className="size-4" />
               New workspace
-            </button>
+            </Button>
           }
         />
       )}
 
       {workspaces && workspaces.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {workspaces.map((workspace) => (
-            <WorkspaceCard
-              key={workspace.id}
-              workspace={workspace}
-              onEdit={() => setEditingWorkspace(workspace)}
-              onDelete={() => setDeletingWorkspace(workspace)}
-            />
+          {workspaces.map((workspace, i) => (
+            <div key={workspace.id} className="animate-rise-in" style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}>
+              <WorkspaceCard
+                workspace={workspace}
+                onEdit={() => setEditingWorkspace(workspace)}
+                onDelete={() => setDeletingWorkspace(workspace)}
+              />
+            </div>
           ))}
         </div>
       )}

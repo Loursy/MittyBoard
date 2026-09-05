@@ -37,10 +37,19 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="animate-pop-in glass-panel w-full max-w-sm rounded-2xl border border-[var(--color-border)] p-7 shadow-2xl shadow-black/40">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <div
+        className="animate-glow-pulse pointer-events-none absolute -left-16 top-1/4 size-72 rounded-full bg-indigo-500/20 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="animate-glow-pulse pointer-events-none absolute -right-16 bottom-1/4 size-72 rounded-full bg-fuchsia-500/15 blur-3xl [animation-delay:1.2s]"
+        aria-hidden
+      />
+
+      <div className="animate-pop-in glass-panel relative w-full max-w-sm rounded-2xl border border-[var(--color-border)] p-7 shadow-2xl shadow-black/40">
         <div className="mb-6 flex flex-col items-center text-center">
-          <span className="mb-3 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500">
+          <span className="animate-float-soft mb-3 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-[0_4px_16px_-4px_rgba(129,140,248,0.6)]">
             <LayoutGrid className="size-5 text-white" />
           </span>
           <h1 className="text-lg font-semibold text-white">Welcome back</h1>
@@ -71,7 +80,7 @@ export function LoginPage() {
           </Field>
 
           {error && (
-            <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+            <p className="animate-pop-in rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
               {error}
             </p>
           )}
@@ -83,7 +92,7 @@ export function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-slate-400">
           Don&apos;t have an account?{" "}
-          <Link to="/register" className="font-medium text-indigo-400 hover:text-indigo-300">
+          <Link to="/register" className="font-medium text-indigo-400 transition-colors hover:text-indigo-300">
             Create one
           </Link>
         </p>

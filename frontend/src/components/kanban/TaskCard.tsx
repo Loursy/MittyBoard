@@ -1,10 +1,12 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2 } from "lucide-react";
+import { Clock, Pencil, Trash2 } from "lucide-react";
 import type { Task } from "../../types";
 import { cn } from "../../lib/cn";
+import { relativeTime } from "../../lib/relativeTime";
 import { PriorityBadge, StatusBadge } from "../ui/Badge";
 import { Menu } from "../ui/Menu";
+import { priorityAccentColor } from "../../lib/priorityColors";
 
 interface TaskCardProps {
   task: Task;
@@ -31,10 +33,17 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
       {...listeners}
       onClick={onEdit}
       className={cn(
-        "group cursor-grab rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 shadow-sm shadow-black/20 transition-colors active:cursor-grabbing hover:border-indigo-400/40",
-        isDragging && "opacity-40",
+        "group relative cursor-grab overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] py-3 pl-4 pr-3 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.4),0_4px_10px_-4px_rgba(0,0,0,0.35)] transition-all duration-200 ease-out active:cursor-grabbing",
+        "hover:-translate-y-0.5 hover:border-white/15 hover:shadow-[0_2px_4px_-2px_rgba(0,0,0,0.5),0_12px_24px_-8px_rgba(0,0,0,0.5)]",
+        isDragging && "rotate-1 opacity-40 shadow-none",
       )}
     >
+      <span
+        className="absolute inset-y-0 left-0 w-1"
+        style={{ backgroundColor: priorityAccentColor[task.priority] }}
+        aria-hidden
+      />
+
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 break-words text-sm font-medium leading-snug text-slate-100">{task.title}</p>
         <Menu
@@ -51,6 +60,10 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         <PriorityBadge priority={task.priority} />
         <StatusBadge status={task.status} />
+        <span className="ml-auto flex items-center gap-1 text-[11px] text-slate-500">
+          <Clock className="size-3" />
+          {relativeTime(task.createdAt)}
+        </span>
       </div>
     </div>
   );

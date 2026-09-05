@@ -42,17 +42,19 @@ export function Column({ column, tasks, onRename, onDelete, onAddTask, onEditTas
   };
 
   const taskIds = tasks.map((t) => `task-${t.id}`);
+  const doneCount = tasks.filter((t) => t.status === "DONE").length;
+  const doneRatio = tasks.length > 0 ? doneCount / tasks.length : 0;
 
   return (
     <div
       ref={setSortableRef}
       style={style}
       className={cn(
-        "flex h-full w-72 shrink-0 flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-1)]/80",
+        "elevation-1 flex h-full w-72 shrink-0 flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-1)]/90 backdrop-blur-sm transition-opacity duration-150",
         isDragging && "opacity-40",
       )}
     >
-      <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-3">
+      <div className="flex items-center justify-between gap-2 rounded-t-2xl border-b border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent px-3 pb-2 pt-3">
         <div
           {...attributes}
           {...listeners}
@@ -60,7 +62,7 @@ export function Column({ column, tasks, onRename, onDelete, onAddTask, onEditTas
         >
           <GripVertical className="size-4 shrink-0 text-slate-600" />
           <h3 className="truncate text-sm font-semibold text-slate-100">{column.title}</h3>
-          <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[11px] font-medium text-slate-500">
+          <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-slate-400 ring-1 ring-inset ring-white/5">
             {tasks.length}
           </span>
         </div>
@@ -71,6 +73,15 @@ export function Column({ column, tasks, onRename, onDelete, onAddTask, onEditTas
           ]}
         />
       </div>
+
+      {tasks.length > 0 && (
+        <div className="h-0.5 w-full bg-white/5">
+          <div
+            className="h-full bg-gradient-to-r from-indigo-400 to-emerald-400 transition-[width] duration-300 ease-out"
+            style={{ width: `${doneRatio * 100}%` }}
+          />
+        </div>
+      )}
 
       <div
         ref={setDroppableRef}

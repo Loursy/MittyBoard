@@ -10,22 +10,24 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates, SortableContext } from "@dnd-kit/sortable";
-import { ArrowLeft, LayoutGrid } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { boardsApi } from "../api/boards";
 import { columnsApi } from "../api/columns";
 import { tasksApi } from "../api/tasks";
+import { workspacesApi } from "../api/workspaces";
 import { Column } from "../components/kanban/Column";
 import { ColumnFormModal } from "../components/kanban/ColumnFormModal";
 import { InlineAddForm } from "../components/kanban/InlineAddForm";
 import { type TaskFormValues, TaskFormModal } from "../components/kanban/TaskFormModal";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
-import { Spinner } from "../components/ui/Spinner";
+import { BoardSkeleton } from "../components/ui/Skeleton";
+import { useBreadcrumbs } from "../hooks/useBreadcrumbs";
 import { apiErrorMessage } from "../lib/api";
-import type { Board, Task, TaskColumn, TaskRequest } from "../types";
+import type { Board, Task, TaskColumn, TaskRequest, Workspace } from "../types";
 
 type DragData =
   | { type: "task"; taskId: number; columnId: number }
@@ -36,6 +38,8 @@ export function BoardPage() {
   const wsId = Number(workspaceId);
   const brdId = Number(boardId);
 
+  const { setCrumbs } = useBreadcrumbs();
+  const [workspace, setWorkspace] = useState<Workspace | null | undefined>(undefined);
   const [board, setBoard] = useState<Board | null | undefined>(undefined);
   const [columns, setColumns] = useState<TaskColumn[] | null>(null);
   const [tasksByColumn, setTasksByColumn] = useState<Record<number, Task[]>>({});
@@ -53,6 +57,11 @@ export function BoardPage() {
 
   useEffect(() => {
     if (!Number.isFinite(wsId) || !Number.isFinite(brdId)) return;
+
+    workspacesApi
+      .list()
+      .then((all) => setWorkspace(all.find((w) => w.id === wsId) ?? null))
+      .catch(() => setWorkspace(null));
 
     boardsApi
       .listByWorkspace(wsId)
@@ -77,6 +86,15 @@ export function BoardPage() {
       }
     })();
   }, [wsId, brdId]);
+
+  useEffect(() => {
+    setCrumbs([
+      { label: "Workspaces", to: "/" },
+      { label: workspace === undefined ? "Loading…" : (workspace?.name ?? "Workspace"), to: `/workspaces/${wsId}` },
+      { label: board === undefined ? "Loading…" : (board?.title ?? "Board") },
+    ]);
+    return () => setCrumbs([]);
+  }, [setCrumbs, workspace, board, wsId]);
 
   if (!Number.isFinite(wsId) || !Number.isFinite(brdId)) return <Navigate to="/" replace />;
 
@@ -223,23 +241,11 @@ export function BoardPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <Link
-        to={`/workspaces/${wsId}`}
-        className="mb-4 inline-flex w-fit items-center gap-1.5 text-sm text-slate-400 hover:text-white"
-      >
-        <ArrowLeft className="size-4" />
-        Boards
-      </Link>
-
       <h1 className="mb-6 text-xl font-semibold text-white">
         {board === undefined ? "Loading…" : (board?.title ?? "Board")}
       </h1>
 
-      {columns === null && (
-        <div className="flex h-40 items-center justify-center">
-          <Spinner />
-        </div>
-      )}
+      {columns === null && <BoardSkeleton />}
 
       {columns?.length === 0 && (
         <EmptyState
@@ -256,7 +262,7 @@ export function BoardPage() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex flex-1 items-start gap-4 overflow-x-auto pb-4">
+          <div className="fade-mask-x flex flex-1 items-start gap-4 overflow-x-auto pb-4">
             <SortableContext items={columns.map((c) => `column-${c.id}`)} strategy={horizontalListSortingStrategy}>
               {columns.map((column) => (
                 <Column

@@ -1,3 +1,4 @@
+import { Columns3 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Field";
@@ -37,7 +38,13 @@ export function ColumnFormModal({ isOpen, onClose, onSubmit, initialTitle }: Col
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Rename column" size="sm">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Rename column"
+      size="sm"
+      icon={<Columns3 className="size-4.5 text-indigo-300" />}
+    >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Field label="Column title" htmlFor="column-title">
           <Input
