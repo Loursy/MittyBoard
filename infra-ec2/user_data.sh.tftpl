@@ -1,13 +1,19 @@
 #!/bin/bash
 set -euxo pipefail
 
-# Amazon Linux 2023 doesn't ship git by default.
-dnf install -y git
-
-# Docker's official convenience script installs Engine + the `docker compose`
-# plugin in one shot, regardless of which Linux distro the AMI happens to be.
-curl -fsSL https://get.docker.com | sh
+# Amazon Linux 2023 doesn't ship git, and Docker's official convenience
+# script (get.docker.com) explicitly refuses to run on it ("Unsupported
+# distribution 'amzn'") — use AL2023's own docker package instead.
+dnf install -y git docker
 systemctl enable --now docker
+
+# AL2023's docker package doesn't bundle the `docker compose` CLI plugin;
+# install it into docker's system-wide plugin directory.
+DOCKER_CLI_PLUGINS=/usr/local/lib/docker/cli-plugins
+mkdir -p "$DOCKER_CLI_PLUGINS"
+curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
+  -o "$DOCKER_CLI_PLUGINS/docker-compose"
+chmod +x "$DOCKER_CLI_PLUGINS/docker-compose"
 
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
