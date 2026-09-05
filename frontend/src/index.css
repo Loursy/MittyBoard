@@ -194,7 +194,14 @@
 
   /* Page-level entrance: a bit more travel than pop-in so a whole view
      reads as "arriving" rather than a modal-style pop. animation-fill-mode
-     both keeps it invisible pre-delay, so it composes with a stagger. */
+     both keeps it invisible pre-delay, so it composes with a stagger.
+     The end state is `transform: none`, not `translateY(0)` — those render
+     identically, but unlike `none`, a translate() (even of 0) is a value
+     "other than none" and permanently promotes this element to a new
+     containing block. Board pages wrap dnd-kit's <DragOverlay>, which is
+     `position: fixed` with no portal — under that containing block it
+     anchors to this element instead of the viewport, so the drag preview
+     renders miles from the cursor. */
   @keyframes rise-in {
     from {
       opacity: 0;
@@ -202,11 +209,21 @@
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: none;
     }
   }
   .animate-rise-in {
     animation: rise-in 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Same entrance pacing as rise-in, but opacity-only — for the board page
+     specifically, whose subtree hosts dnd-kit's <DragOverlay>. That overlay
+     is `position: fixed` with no portal, so ANY ancestor with a non-none
+     transform (even mid-animation, before settling on `none`) hijacks its
+     containing block and the drag preview renders nowhere near the cursor.
+     Opacity never does that, so this is the safe choice for that subtree. */
+  .animate-fade-in-page {
+    animation: fade-in 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   /* Opacity-only stagger for sortable list items (dnd-kit drives `transform`

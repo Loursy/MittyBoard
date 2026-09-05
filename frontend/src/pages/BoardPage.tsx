@@ -245,7 +245,7 @@ export function BoardPage() {
   const stats = taskStats(Object.values(tasksByColumn).flat());
 
   return (
-    <div className="animate-rise-in flex h-full flex-col">
+    <div className="animate-fade-in-page flex h-full flex-col">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <h1 className="text-xl font-semibold text-white">
           {board === undefined ? "Loading…" : (board?.title ?? "Board")}
@@ -300,7 +300,7 @@ export function BoardPage() {
             </div>
           </div>
 
-          <DragOverlay>
+          <DragOverlay dropAnimation={null}>
             {activeTask && (
               <div
                 className="w-72 rotate-2 scale-[1.03] rounded-xl border bg-[var(--color-surface-2)] p-3 shadow-2xl shadow-black/50 ring-4 ring-black/10"
