@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euxo pipefail
 
+# Amazon Linux 2023 doesn't ship git by default.
+dnf install -y git
+
 # Docker's official convenience script installs Engine + the `docker compose`
 # plugin in one shot, regardless of which Linux distro the AMI happens to be.
 curl -fsSL https://get.docker.com | sh
