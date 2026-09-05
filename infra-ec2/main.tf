@@ -46,7 +46,7 @@ resource "aws_security_group" "this" {
   }
 
   ingress {
-    description = "HTTP (Let's Encrypt challenge + redirect to HTTPS)"
+    description = "HTTP (ACME challenge + redirect to HTTPS)"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
