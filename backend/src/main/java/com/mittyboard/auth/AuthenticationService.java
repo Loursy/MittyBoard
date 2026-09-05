@@ -2,6 +2,7 @@ package com.mittyboard.auth;
 
 import com.mittyboard.entity.User;
 import com.mittyboard.enums.Role;
+import com.mittyboard.exception.ResourceConflictException;
 import com.mittyboard.repository.UserRepository;
 import com.mittyboard.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,10 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
 
     public AuthenticationResponse register(RegisterRequest request) {
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new ResourceConflictException("This email is already registered.");
+        }
 
         var user = User.builder()
                 .fullName(request.getFullName())
