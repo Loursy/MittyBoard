@@ -23,7 +23,11 @@ curl -fsSL "https://github.com/docker/buildx/releases/download/$${BUILDX_VERSION
   -o "$DOCKER_CLI_PLUGINS/docker-buildx"
 chmod +x "$DOCKER_CLI_PLUGINS/docker-buildx"
 
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+# This instance's IMDS enforces IMDSv2 (token-required); a plain unauthenticated
+# GET against the metadata endpoint returns 401 and curl -s swallows it as an
+# empty body, silently leaving PUBLIC_IP blank.
+IMDS_TOKEN=$(curl -fsSL -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+PUBLIC_IP=$(curl -fsSL -H "X-aws-ec2-metadata-token: $IMDS_TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
 
 git clone --branch main --depth 1 "https://github.com/${github_repo}.git" /opt/mittyboard
 cd /opt/mittyboard
