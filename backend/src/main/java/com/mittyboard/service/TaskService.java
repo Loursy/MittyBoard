@@ -46,10 +46,14 @@ public class TaskService {
                 .build();
 
         Task savedTask = taskRepository.save(task);
+        TaskResponse response = mapToResponse(savedTask);
 
-        messagingTemplate.convertAndSend("/topic/boards/" + savedTask.getColumn().getBoard().getId(), savedTask);
+        // Broadcast the DTO, not the JPA entity: the entity's lazy associations form a
+        // cycle (Task -> column -> board -> taskColumns -> column -> ...) that blows up
+        // Jackson serialization for the WebSocket message.
+        messagingTemplate.convertAndSend("/topic/boards/" + savedTask.getColumn().getBoard().getId(), response);
 
-        return mapToResponse(savedTask);
+        return response;
     }
 
     public List<TaskResponse> getTasksByColumn(Long columnId) {
@@ -99,11 +103,23 @@ public class TaskService {
             task.setStatus(request.getStatus());
         }
 
+        if (request.getColumnId() != null && !request.getColumnId().equals(task.getColumn().getId())) {
+            TaskColumn targetColumn = taskColumnRepository.findById(request.getColumnId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Target column cannot be found!"));
+
+            if (!targetColumn.getBoard().getWorkspace().getOwner().getId().equals(currentUser.getId())) {
+                throw new UnauthorizedAccessException("You are not authorized to move this task to that column!");
+            }
+
+            task.setColumn(targetColumn);
+        }
+
         Task updatedTask = taskRepository.save(task);
+        TaskResponse response = mapToResponse(updatedTask);
 
-        messagingTemplate.convertAndSend("/topic/boards/" + updatedTask.getColumn().getBoard().getId(), updatedTask);
+        messagingTemplate.convertAndSend("/topic/boards/" + updatedTask.getColumn().getBoard().getId(), response);
 
-        return mapToResponse(updatedTask);
+        return response;
     }
 
     public void deleteTask(Long taskId) {
