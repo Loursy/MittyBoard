@@ -1,17 +1,18 @@
 name: Deploy to AWS
 
+# Disabled: the app currently runs on the single-EC2 setup in infra-ec2/,
+# not the ECS Fargate stack this workflow targets. The infra/ Terraform for
+# that stack has never been applied and AWS_DEPLOY_ROLE_ARN isn't set, so
+# every push run fails at the credentials step. Re-enable the push trigger
+# once infra/ has actually been applied and the secret is set, or run this
+# manually via workflow_dispatch to test that.
+#
 # Requires the infra/ Terraform to already be applied once (creates the ECR
 # repos, ECS cluster/services, and the OIDC deploy role), and a repo secret
 # AWS_DEPLOY_ROLE_ARN set to the `github_actions_deploy_role_arn` Terraform
 # output. No long-lived AWS keys are used — auth is via OIDC.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - "frontend/**"
-      - ".github/workflows/deploy.yml"
   workflow_dispatch: {}
 
 permissions:
